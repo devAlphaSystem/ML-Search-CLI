@@ -1,0 +1,33 @@
+# Node modules
+node_modules/*
+logs/*
+
+# Environment variables
+.env*
+
+# Package manager files
+package.json
+package-lock.json
+
+# Databases
+data/*
+db/*.db
+
+# Pocketbase
+build_pb.js
+pb_schema.json
+
+# Vendors
+public/css/vendors/*
+public/js/vendors/*
+
+# Markdown
+*.md
+
+# Minified files
+*-min.js
+*-min.css
+*_min.js
+*_min.css
+*.min.js
+*.min.css
