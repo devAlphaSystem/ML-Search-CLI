@@ -8,7 +8,18 @@
  */
 
 import { parseArgs } from "node:util";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { search, searchRaw, getCategories } from "../lib/index.js";
+import { initLogger, log, closeLogger } from "../lib/logger.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const LOG_FLAG = process.argv.includes("--log");
+if (LOG_FLAG) {
+  initLogger(path.join(__dirname, ".."));
+}
 
 const HELP = `
   \x1b[1mml-search\x1b[0m — Search Mercado Livre from the terminal.
@@ -29,6 +40,8 @@ const HELP = `
     --concurrency <n>      Max parallel detail requests (default: 5)
     --state <uf>           Filter by Brazilian state(s) — MLB only (e.g. "sp", "rj,mg,sp")
     --strict               Only show results where ALL search terms appear in the title, description or attributes
+    --no-rate-limit        Disable built-in rate limiting (use at your own risk — may get your IP blocked)
+    --log                  Write a detailed debug log file to the project root
 
   \x1b[1mOutput:\x1b[0m
     -f, --format <type>    Output format: "json", "table", "jsonl", "csv" (default: json)
@@ -67,6 +80,8 @@ try {
       category: { type: "string" },
       "list-categories": { type: "boolean", default: false },
       strict: { type: "boolean", default: false },
+      "no-rate-limit": { type: "boolean", default: false },
+      log: { type: "boolean", default: false },
       format: { type: "string", short: "f" },
       pretty: { type: "boolean", default: false },
       raw: { type: "boolean", default: false },
@@ -167,6 +182,7 @@ try {
     state: opts.state,
     category: opts.category,
     strict: opts.strict,
+    noRateLimit: opts["no-rate-limit"],
   });
 
   let items = result.items;
@@ -206,8 +222,12 @@ try {
     process.stderr.write(`\x1b[33mNote:\x1b[0m The platform limits browsable results to ${platformMax.toLocaleString("pt-BR")}. Requested: ${limit}.\n`);
   }
 } catch (e) {
+  log("CLI", "Fatal error", e);
+  closeLogger();
   error(e.message);
 }
+
+closeLogger();
 
 /**
  * Prints search results to stdout in the requested format.

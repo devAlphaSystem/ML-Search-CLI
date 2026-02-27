@@ -78,17 +78,43 @@ ml-search <query> [options]
 | `--concurrency <n>` | integer | `5` | Parallel detail requests. |
 | `--state <uf[,uf...]>` | string | none | One or many UFs (MLB), ex: `sp` or `sp,rj,mg`. |
 | `--strict` | flag | `false` | Keep only items matching all query tokens in title/description/attributes. |
+| `--no-rate-limit` | flag | `false` | Disable built-in rate limiting (may get your IP blocked). |
 | `-f, --format <type>` | string | `json` | `json`, `table`, `jsonl`, `csv`. |
 | `--pretty` | flag | `false` | Pretty print JSON output. |
 | `--raw` | flag | `false` | Return raw `initialState` and exit. |
 | `--fields <list>` | csv string | none | Keep selected fields only. |
 | `-w, --web` | flag | `false` | Render HTML results and open browser. |
+| `--log` | flag | `false` | Write a timestamped `.log` file to the project root with HTTP, search, and detail-enrichment traces. |
 | `-h, --help` | flag | `false` | Show help. |
 | `-v, --version` | flag | `false` | Show package version. |
+
+## Rate Limiting
+
+Built-in rate limiting is **enabled by default** to prevent your IP from being blocked by Mercado Livre.
+
+- **Page delay:** 200 ms between pagination requests
+- **Detail delay:** 100 ms between detail-enrichment batches
+- **Max concurrency:** 3 parallel detail requests (overrides `--concurrency` when lower)
+
+To disable rate limiting (at your own risk):
+
+```bash
+ml-search "notebook" --no-rate-limit
+```
 
 ## Important Rule
 
 `--condition` and `--category` cannot be used together. The library throws an explicit error when both are provided.
+
+## Logging
+
+Pass `--log` to write a timestamped log file (`ml-search_YYYY-MM-DD_HH-MM-SS.log`) to the project root.
+The file records every HTTP request/response (URL, status code, content-type, body size), the constructed search URL, per-page parse counts, pagination progress, per-item detail-enrichment results, and the final summary.
+No file is created when `--log` is omitted.
+
+```bash
+ml-search "iphone 15" --log
+```
 
 ## Output Formats
 
@@ -171,6 +197,7 @@ Main options:
 - `state?: string` (single or comma-separated UFs)
 - `category?: string` (ID or path slug)
 - `strict?: boolean`
+- `noRateLimit?: boolean`
 
 #### `searchRaw(query, options?)`
 
