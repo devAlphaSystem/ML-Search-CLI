@@ -12,6 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { search, searchRaw, getCategories } from "../lib/index.js";
 import { initLogger, log, closeLogger } from "../lib/logger.js";
+import fs from "node:fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,21 +36,24 @@ const HELP = `
   \x1b[1mOptions:\x1b[0m
     -l, --limit <n>        Max results to return (default: 20)
     -c, --condition <type> Filter: "new" or "used"
-    --sort <order>         Sort: "price_asc", "price_desc", or "relevance"
-    --category <id>        Filter by category ID (e.g. "MLB1648") or slug (e.g. "informatica")
-    --list-categories      List all valid categories and exit
-    --timeout <ms>         HTTP timeout in ms (default: 15000)
-    --concurrency <n>      Max parallel detail requests (default: 5)
-    --state <uf>           Filter by Brazilian state(s) — MLB only (e.g. "sp", "rj,mg,sp")
-    --strict               Only show results where ALL search terms appear in the title, description or attributes
-    --no-rate-limit        Disable built-in rate limiting (use at your own risk — may get your IP blocked)
-    --log                  Write a detailed debug log file to the project root
+    -s, --sort <order>     Sort: "price_asc", "price_desc", or "relevance"
+    -g, --category <id>    Filter by category ID (e.g. "MLB1648") or slug (e.g. "informatica")
+    -G, --list-categories  List all valid categories and exit
+    -t, --timeout <ms>     HTTP timeout in ms (default: 15000)
+    -n, --concurrency <n>  Max parallel detail requests (default: 5)
+    -a, --state <uf>       Filter by Brazilian state(s) — MLB only (e.g. "sp", "rj,mg,sp")
+    -S, --strict           Only show results where ALL search terms appear in the title, description or attributes
+    -d, --no-details       Skip detail enrichment requests (faster, returns only basic listing data)
+    -R, --no-rate-limit    Disable built-in rate limiting (use at your own risk — may get your IP blocked)
+    -1, --save-on-first    Save the first HTTP response (JSON + HTML) to the project root
+    -e, --save-on-error    Save any HTTP response that returns an error (JSON + HTML) to the project root
+    -L, --log              Write a detailed debug log file to the project root
 
   \x1b[1mOutput:\x1b[0m
     -f, --format <type>    Output format: "json", "table", "jsonl", "csv" (default: json)
-    --pretty               Pretty-print JSON output
-    --raw                  Output the full raw initialState object
-    --fields <list>        Comma-separated fields to include (e.g. "title,price,permalink")
+    -p, --pretty           Pretty-print JSON output
+    -r, --raw              Output the full raw initialState object
+    -F, --fields <list>    Comma-separated fields to include (e.g. "title,price,permalink")
     -w, --web              Open results as a web page in the browser
 
   \x1b[1mExamples:\x1b[0m
@@ -75,19 +79,22 @@ try {
     options: {
       limit: { type: "string", short: "l" },
       condition: { type: "string", short: "c" },
-      sort: { type: "string" },
-      timeout: { type: "string" },
-      concurrency: { type: "string" },
-      state: { type: "string" },
-      category: { type: "string" },
-      "list-categories": { type: "boolean", default: false },
-      strict: { type: "boolean", default: false },
-      "no-rate-limit": { type: "boolean", default: false },
-      log: { type: "boolean", default: false },
+      sort: { type: "string", short: "s" },
+      timeout: { type: "string", short: "t" },
+      concurrency: { type: "string", short: "n" },
+      state: { type: "string", short: "a" },
+      category: { type: "string", short: "g" },
+      "list-categories": { type: "boolean", short: "G", default: false },
+      strict: { type: "boolean", short: "S", default: false },
+      "no-details": { type: "boolean", short: "d", default: false },
+      "no-rate-limit": { type: "boolean", short: "R", default: false },
+      "save-on-first": { type: "boolean", short: "1", default: false },
+      "save-on-error": { type: "boolean", short: "e", default: false },
+      log: { type: "boolean", short: "L", default: false },
       format: { type: "string", short: "f" },
-      pretty: { type: "boolean", default: false },
-      raw: { type: "boolean", default: false },
-      fields: { type: "string" },
+      pretty: { type: "boolean", short: "p", default: false },
+      raw: { type: "boolean", short: "r", default: false },
+      fields: { type: "string", short: "F" },
       web: { type: "boolean", short: "w", default: false },
       help: { type: "boolean", short: "h", default: false },
       version: { type: "boolean", short: "v", default: false },
@@ -193,6 +200,9 @@ try {
     category: opts.category,
     strict: opts.strict,
     noRateLimit: opts["no-rate-limit"],
+    noDetails: opts["no-details"],
+    onFirstResponse: opts["save-on-first"] ? makeSaveCallback("ml-first") : null,
+    onErrorResponse: opts["save-on-error"] ? makeSaveCallback("ml-error") : null,
   });
 
   let items = result.items;
@@ -230,6 +240,11 @@ try {
     }
   } else if (platformMax && limit > platformMax) {
     process.stderr.write(`\x1b[33mNote:\x1b[0m The platform limits browsable results to ${platformMax.toLocaleString("pt-BR")}. Requested: ${limit}.\n`);
+  }
+
+  if (result.stats) {
+    const s = result.stats;
+    log("CLI", `Requests: ${s.requests} total (${s.pageRequests} page${s.pageRequests !== 1 ? "s" : ""} + ${s.detailRequests} detail${s.detailRequests !== 1 ? "s" : ""})`);
   }
 } catch (e) {
   log("CLI", "Fatal error", e);
@@ -846,16 +861,44 @@ ${cardsHtml}
 async function openInBrowser(result, items) {
   const { writeFileSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
-  const { exec } = await import("node:child_process");
+  const { spawn } = await import("node:child_process");
   const { join } = await import("node:path");
 
   const html = generateHtml(result, items);
   const file = join(tmpdir(), `ml-search-${Date.now()}.html`);
   writeFileSync(file, html, "utf8");
 
-  const cmd = process.platform === "win32" ? `start "" "${file}"` : process.platform === "darwin" ? `open "${file}"` : `xdg-open "${file}"`;
-  exec(cmd);
+  const opts = { detached: true, stdio: "ignore", windowsHide: true };
+  if (process.platform === "win32") {
+    spawn("cmd", ["/c", "start", "", file], opts).unref();
+  } else if (process.platform === "darwin") {
+    spawn("open", [file], opts).unref();
+  } else {
+    spawn("xdg-open", [file], opts).unref();
+  }
   process.stderr.write(`Opened in browser: ${file}\n`);
+}
+
+/**
+ * Creates a callback that saves HTTP response data to files in the project root.
+ * Each invocation writes a `.json` metadata file and, when a body is present, an `.html` file.
+ *
+ * @param {string} prefix - Filename prefix (e.g. `"ml-first"` or `"ml-error"`).
+ * @returns {(data: {url: string, body: string|null, error: string|null, timestamp: string}) => Promise<void>}
+ */
+function makeSaveCallback(prefix) {
+  let callCount = 0;
+  return async ({ url, body, error: errorMsg, timestamp }) => {
+    callCount++;
+    const ts = timestamp.replace(/[:.]/g, "-").replace("T", "_").substring(0, 19);
+    const suffix = callCount > 1 ? `_${callCount}` : "";
+    const baseName = `${prefix}_${ts}${suffix}`;
+    const rootDir = path.join(__dirname, "..");
+    const meta = { url, timestamp, error: errorMsg || null, bodyLength: body ? body.length : 0 };
+    fs.writeFileSync(path.join(rootDir, `${baseName}.json`), JSON.stringify(meta, null, 2), "utf-8");
+    if (body) fs.writeFileSync(path.join(rootDir, `${baseName}.html`), body, "utf-8");
+    log("CLI", `Saved: ${baseName}.json${body ? ` + ${baseName}.html` : ""}`);
+  };
 }
 
 /**

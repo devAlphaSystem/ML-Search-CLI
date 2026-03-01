@@ -14,6 +14,7 @@ Command line and library tool to extract structured search results from Mercado 
 
 - Node.js `>=18`
 - Network access to `lista.mercadolivre.com.br`
+- [`nlcurl`](https://github.com/user/nlcurl) — Chrome TLS/HTTP2 fingerprint impersonation (bundled dependency)
 
 ## Installation
 
@@ -71,20 +72,23 @@ ml-search <query> [options]
 |---|---|---|---|
 | `-l, --limit <n>` | integer | `20` | Maximum number of results returned. |
 | `-c, --condition <type>` | string | none | Item condition: `new` or `used`. |
-| `--sort <order>` | string | `relevance` | Sort order: `price_asc`, `price_desc`, `relevance`. |
-| `--category <id_or_slug>` | string | none | Category by ID (ex: `MLB1648`) or slug/path (ex: `informatica`). |
-| `--list-categories` | flag | `false` | Print supported categories and exit. |
-| `--timeout <ms>` | integer | `15000` | HTTP timeout per request. |
-| `--concurrency <n>` | integer | `5` | Parallel detail requests. |
-| `--state <uf[,uf...]>` | string | none | One or many UFs (MLB), ex: `sp` or `sp,rj,mg`. |
-| `--strict` | flag | `false` | Keep only items matching all query tokens in title/description/attributes. |
-| `--no-rate-limit` | flag | `false` | Disable built-in rate limiting (may get your IP blocked). |
+| `-s, --sort <order>` | string | `relevance` | Sort order: `price_asc`, `price_desc`, `relevance`. |
+| `-g, --category <id_or_slug>` | string | none | Category by ID (ex: `MLB1648`) or slug/path (ex: `informatica`). |
+| `-G, --list-categories` | flag | `false` | Print supported categories and exit. |
+| `-t, --timeout <ms>` | integer | `15000` | HTTP timeout per request. |
+| `-n, --concurrency <n>` | integer | `5` | Parallel detail requests. |
+| `-a, --state <uf[,uf...]>` | string | none | One or many UFs (MLB), ex: `sp` or `sp,rj,mg`. |
+| `-S, --strict` | flag | `false` | Keep only items matching all query tokens in title/description/attributes. |
+| `-d, --no-details` | flag | `false` | Skip detail enrichment requests (faster, returns only basic listing data — no description, pictures, or attributes). |
+| `-R, --no-rate-limit` | flag | `false` | Disable built-in rate limiting (may get your IP blocked). |
+| `-1, --save-on-first` | flag | `false` | Save the first HTTP response to the project root as `ml-first_<timestamp>.json` + `.html`. |
+| `-e, --save-on-error` | flag | `false` | Save any HTTP response that returns an error to the project root as `ml-error_<timestamp>.json` + `.html`. |
 | `-f, --format <type>` | string | `json` | `json`, `table`, `jsonl`, `csv`. |
-| `--pretty` | flag | `false` | Pretty print JSON output. |
-| `--raw` | flag | `false` | Return raw `initialState` and exit. |
-| `--fields <list>` | csv string | none | Keep selected fields only. |
+| `-p, --pretty` | flag | `false` | Pretty print JSON output. |
+| `-r, --raw` | flag | `false` | Return raw `initialState` and exit. |
+| `-F, --fields <list>` | csv string | none | Keep selected fields only. |
 | `-w, --web` | flag | `false` | Render HTML results and open browser. |
-| `--log` | flag | `false` | Write a timestamped `.log` file to the project root with HTTP, search, and detail-enrichment traces. |
+| `-L, --log` | flag | `false` | Write a timestamped `.log` file to the project root with HTTP, search, and detail-enrichment traces. |
 | `-h, --help` | flag | `false` | Show help. |
 | `-v, --version` | flag | `false` | Show package version. |
 
@@ -109,7 +113,7 @@ ml-search "notebook" --no-rate-limit
 ## Logging
 
 Pass `--log` to write a timestamped log file (`ml-search_YYYY-MM-DD_HH-MM-SS.log`) to the project root.
-The file records every HTTP request/response (URL, status code, content-type, body size), the constructed search URL, per-page parse counts, pagination progress, per-item detail-enrichment results, and the final summary.
+The file records every HTTP request/response (URL, status code, content-type, body size), the constructed search URL, per-page parse counts, pagination progress, per-item detail-enrichment results, and a request count summary (total, page, and detail calls).
 No file is created when `--log` is omitted.
 
 ```bash
