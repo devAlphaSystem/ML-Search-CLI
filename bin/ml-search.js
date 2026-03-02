@@ -313,7 +313,7 @@ function outputTable(items) {
   for (const [i, item] of items.entries()) {
     const num = dim(`${String(i + 1).padStart(2)}.`);
     const rawTitle = item.title || "";
-    const title = bold(rawTitle.length > 72 ? rawTitle.slice(0, 71) + "…" : rawTitle);
+    const title = bold(rawTitle.length > 72 ? rawTitle.slice(0, 71) + "..." : rawTitle);
     const safeCur = { R$: "BRL", BRL: "BRL", USD: "USD", US$: "USD", EUR: "EUR", $: "USD" };
     const code =
       safeCur[
@@ -370,7 +370,7 @@ function outputTable(items) {
 
     if (item.description) {
       const desc = item.description.replace(/\n+/g, " ").trim();
-      console.log(dim(`    DESCRIPTION: ${desc.length > 120 ? desc.slice(0, 120) + "…" : desc}`));
+      console.log(dim(`    DESCRIPTION: ${desc.length > 120 ? desc.slice(0, 120) + "..." : desc}`));
     }
 
     console.log();
