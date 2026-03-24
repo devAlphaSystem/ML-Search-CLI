@@ -43,6 +43,7 @@ const HELP = `
     -n, --concurrency <n>  Max parallel detail requests (default: 5)
     -a, --state <uf>       Filter by Brazilian state(s) — MLB only (e.g. "sp", "rj,mg,sp")
     -S, --strict           Only show results where ALL search terms appear in the title, description or attributes
+    -I, --no-international Exclude international listings (show only local/domestic results)
     -d, --no-details       Skip detail enrichment requests (faster, returns only basic listing data)
     -R, --no-rate-limit    Disable built-in rate limiting (use at your own risk — may get your IP blocked)
     -1, --save-on-first    Save the first HTTP response (JSON + HTML) to the project root
@@ -86,6 +87,7 @@ try {
       category: { type: "string", short: "g" },
       "list-categories": { type: "boolean", short: "G", default: false },
       strict: { type: "boolean", short: "S", default: false },
+      "no-international": { type: "boolean", short: "I", default: false },
       "no-details": { type: "boolean", short: "d", default: false },
       "no-rate-limit": { type: "boolean", short: "R", default: false },
       "save-on-first": { type: "boolean", short: "1", default: false },
@@ -185,6 +187,7 @@ try {
       sort: opts.sort,
       state: opts.state,
       category: opts.category,
+      noInternational: opts["no-international"],
     });
     console.log(JSON.stringify(raw, null, 2));
     process.exit(0);
@@ -199,6 +202,7 @@ try {
     state: opts.state,
     category: opts.category,
     strict: opts.strict,
+    noInternational: opts["no-international"],
     noRateLimit: opts["no-rate-limit"],
     noDetails: opts["no-details"],
     onFirstResponse: opts["save-on-first"] ? makeSaveCallback("ml-first") : null,
