@@ -607,12 +607,13 @@ main{max-width:var(--page-max);margin:0 auto;padding:var(--main-pt) var(--main-p
 .ctrl-search svg{flex-shrink:0;color:var(--muted);width:15px;height:15px}
 .ctrl-search input{border:none;background:transparent;color:var(--text);font-size:.83rem;width:100%;outline:none}
 .ctrl-search input::placeholder{color:var(--muted)}
-.ctrl-sort{display:flex;align-items:center;flex-wrap:wrap;gap:.35rem}
+.ctrl-sort{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem}
 .sort-label{font-size:.74rem;font-weight:600;color:var(--muted);flex-shrink:0;white-space:nowrap}
-.sort-btn{border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:.72rem;font-weight:500;padding:var(--chip-py) var(--chip-px);border-radius:99px;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .1s}
-.sort-btn:hover{border-color:color-mix(in srgb,var(--accent) 60%,transparent);background:color-mix(in srgb,var(--accent) 10%,var(--surface-2))}
-.sort-btn.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700}
-.sort-btn:active{transform:scale(.96)}
+.sort-select-wrap{position:relative;display:flex;align-items:center;min-width:170px}
+.sort-select{appearance:none;-webkit-appearance:none;-moz-appearance:none;width:100%;border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:.72rem;font-weight:600;padding:.42rem 1.9rem .42rem .7rem;border-radius:99px;cursor:pointer;outline:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.sort-select:hover{border-color:color-mix(in srgb,var(--accent) 60%,transparent);background:color-mix(in srgb,var(--accent) 10%,var(--surface-2))}
+.sort-select:focus{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+.sort-select-wrap::after{content:'v';position:absolute;right:.72rem;pointer-events:none;color:var(--muted);font-size:.68rem;line-height:1}
 .ctrl-count{font-size:.73rem;color:var(--muted);margin-left:auto;white-space:nowrap;flex-shrink:0}
 .card.hidden{display:none!important}
 .no-match{grid-column:1/-1;text-align:center;padding:4rem 1rem;color:var(--muted);font-size:1rem}
@@ -663,14 +664,14 @@ footer a{color:inherit}
   window.addEventListener('resize',pinControls);
 
   var searchInput=document.getElementById('search-input');
-  var sortBtns=document.querySelectorAll('.sort-btn');
+  var sortSelect=document.getElementById('sort-select');
   var cards=Array.from(document.querySelectorAll('.card'));
   var grid=document.querySelector('.grid');
   var countEl=document.getElementById('ctrl-count');
   var controls=document.querySelector('.controls');
   var currentSort=(controls&&controls.dataset.initialSort)||'relevance';
   var currentSearch='';
-  sortBtns.forEach(function(b){b.classList.toggle('active',b.dataset.sort===currentSort);});
+  if(sortSelect){sortSelect.value=currentSort;}
 
   function update(){
     var q=currentSearch.toLowerCase();
@@ -729,14 +730,12 @@ footer a{color:inherit}
       }
     });
   }
-  sortBtns.forEach(function(btn){
-    btn.addEventListener('click',function(){
-      currentSort=btn.dataset.sort;
-      sortBtns.forEach(function(b){b.classList.remove('active');});
-      btn.classList.add('active');
+  if(sortSelect){
+    sortSelect.addEventListener('change',function(){
+      currentSort=sortSelect.value;
       update();
     });
-  });
+  }
   if(countEl){countEl.textContent=cards.length+' an\xFAncio'+(cards.length===1?'':'s');}
   document.querySelectorAll('.gallery-strip').forEach(function(strip){
     strip.querySelectorAll('.gal-btn').forEach(function(gbtn){
@@ -821,11 +820,15 @@ footer a{color:inherit}
   </div>
   <div class="ctrl-sort">
     <span class="sort-label">Ordenar:</span>
-    <button class="sort-btn" data-sort="relevance">Relev\xE2ncia</button>
-    <button class="sort-btn" data-sort="price-asc">Menor Pre\xE7o</button>
-    <button class="sort-btn" data-sort="price-desc">Maior Pre\xE7o</button>
-    <button class="sort-btn" data-sort="rating">Maior Avalia\xE7\xE3o</button>
-    <button class="sort-btn" data-sort="discount">Maior Desconto</button>
+    <div class="sort-select-wrap">
+      <select id="sort-select" class="sort-select" aria-label="Ordenar resultados">
+        <option value="relevance">Relev\xE2ncia</option>
+        <option value="price-asc">Menor Pre\xE7o</option>
+        <option value="price-desc">Maior Pre\xE7o</option>
+        <option value="rating">Maior Avalia\xE7\xE3o</option>
+        <option value="discount">Maior Desconto</option>
+      </select>
+    </div>
   </div>
   <div class="ctrl-anti">
     <span class="anti-label">Excluir:</span>
