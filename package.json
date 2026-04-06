@@ -1,6 +1,6 @@
 {
   "name": "ml-search-cli",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "description": "Extract structured product data from Mercado Livre search results — no API key, no browser, no scraping.",
   "keywords": [
     "mercado-livre",
@@ -35,10 +35,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "nlcurl": "^0.12.1"
+    "nlcurl": "^0.13.0"
   },
   "devDependencies": {
     "prettier": "^3.8.1"
   },
-  "updated": "2026.03.23.2230"
+  "updated": "2026.04.05.2101"
 }

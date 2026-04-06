@@ -88,6 +88,7 @@ ml-search <query> [options]
 | `-r, --raw` | flag | `false` | Return raw `initialState` and exit. |
 | `-F, --fields <list>` | csv string | none | Keep selected fields only. |
 | `-w, --web` | flag | `false` | Render HTML results and open browser. |
+| `-j, --save-json` | flag | `false` | Save results as `ml-results_<timestamp>.json` in the current directory (always runs, regardless of `--format` or `--web`). |
 | `-L, --log` | flag | `false` | Write a timestamped `.log` file to the project root with HTTP, search, and detail-enrichment traces. |
 | `-h, --help` | flag | `false` | Show help. |
 | `-v, --version` | flag | `false` | Show package version. |
